@@ -79,7 +79,10 @@ while True:
         status = 'not_found'
     data = {'name': 'tim', 'status': status}
     logging.info(data)
-    requests.post(status_url, json=data)
+    try:
+        requests.post(status_url, json=data)
+    except requests.exceptions.ConnectionError:
+        pass  # TODO
 
     # WeChat
     wechat_confidences = [
@@ -100,6 +103,9 @@ while True:
         status = 'unknown_error'
     data = {'name': 'wechat', 'status': status}
     logging.info(data)
-    requests.post(status_url, json=data)
+    try:
+        requests.post(status_url, json=data)
+    except requests.exceptions.ConnectionError:
+        pass  # TODO
 
     sleep(LONG_INTERVAL)
