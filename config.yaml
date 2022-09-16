@@ -1,6 +1,7 @@
 linux:
-  host: '192.168.56.1' # TODO
+  host: '192.168.56.1'
   port: 8000
 windows:
   vm-name: 'Windows 10 LTSC'
   host: '192.168.56.3'
+  port: 8000
