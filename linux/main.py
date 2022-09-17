@@ -25,7 +25,7 @@ def get_app_status(app_name):
     try:
         return requests.get(f"{BASE_URL}/status/{app_name}",
                             timeout=0.1).json()
-    except (requests.exceptions.ReadTimeout, json.JSONDecodeError):
+    except Exception:
         return 'vm_offline'
 
 
@@ -37,21 +37,13 @@ def update_icons():
         for k2 in ['no-message', 'new-message', 'gray']
     }
     tray_icons = {
-        'tim':
-        TrayIcon(
+        'tim': TrayIcon(
             icons['tim-gray'],
-            'Open TIM',
             lambda: open_app('tim'),
-            'Exit TIM',
-            lambda: exit_app('tim'),
         ),
-        'wechat':
-        TrayIcon(
+        'wechat': TrayIcon(
             icons['wechat-gray'],
-            'Open WeChat',
             lambda: open_app('wechat'),
-            'Exit WeChat',
-            lambda: exit_app('wechat'),
         )
     }
     while True:
@@ -88,11 +80,10 @@ def wait_vm_start():
         try:
             if requests.get(BASE_URL, timeout=0.1).status_code == 200:
                 return
-        except requests.exceptions.ReadTimeout:
+        except Exception:
             pass
-        sleep(0.1)
 
-    # TODO showdown vm on linux showdown?
+        sleep(0.1)
 
 
 def open_app(app_name):
@@ -103,12 +94,6 @@ def open_app(app_name):
 
     # Bring vm to front
     subprocess.run(['wmctrl', '-a', config['windows']['vm-name']])
-
-
-def exit_app(app_name):
-    subprocess.check_output('VBoxManage list runningvms',
-                            shell=True,
-                            text=True)
 
 
 if __name__ == '__main__':
