@@ -27,20 +27,12 @@ class TaskBarIcon(wx.adv.TaskBarIcon):
     def CreatePopupMenu(self):
         menu = wx.Menu()
         self.create_menu_item(menu, self.default_name, self.default_callback)
-        self.create_menu_item(menu, self.exit_name, self.on_exit)
+        self.create_menu_item(menu, self.exit_name, self.exit_callback)
         return menu
 
     def set_icon(self, path):
         icon = wx.Icon(path)
         self.SetIcon(icon)
-
-    def on_exit(self, event):
-        try:
-            wx.CallAfter(self.Destroy)
-        except Exception:
-            pass
-        self.frame.Close()
-        self.exit_callback()
 
 
 class TrayIconInstance(wx.App):
@@ -57,7 +49,7 @@ class TrayIconInstance(wx.App):
         self.default_name = default_name
         self.default_callback = lambda _: default_callback()
         self.exit_name = exit_name
-        self.exit_callback = exit_callback
+        self.exit_callback = lambda _: exit_callback()
         super().__init__()
 
     def OnInit(self):
