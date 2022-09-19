@@ -1,19 +1,23 @@
+import logging
+import subprocess
+from multiprocessing import Process
 from pathlib import Path
-from typing import Literal
 from time import sleep
+from typing import Literal
+
+import cv2
+import keyboard
 import mss
 import numpy as np
-import cv2
-import logging
-from datetime import datetime
-import yaml
+import pyautogui
+import requests
 import uvicorn
 import yaml
 from fastapi import FastAPI
-import subprocess
-import pyautogui
-from multiprocessing import Process
 from sqlitedict import SqliteDict
+import win32gui
+import win32process
+import psutil
 
 TRAY_WIDTH = 800
 TRAY_HEIGHT = 80
@@ -34,14 +38,7 @@ logging.basicConfig(level=logging.INFO, format="[%(asctime)s] %(message)s")
 app = FastAPI()
 
 db_path = Path(__file__).parent / 'db.sqlite'
-
-
-@app.on_event('startup')
-def init_db():
-    global db
-    db = SqliteDict(db_path)
-    return db
-
+db = SqliteDict(db_path)
 
 App = Literal['tim', 'wechat']
 Status = Literal['no_message', 'new_message', 'not_found', 'unknown_error']
@@ -96,7 +93,7 @@ def update_status():
         new_message_locating_result = locate_template(
             image, template['tim-new-message'])
         new_message = new_message_locating_result[0] > THRESHOLD
-        logging.info(
+        logging.debug(
             f'TIM: (no) {no_message_locating_result}, (new) {new_message_locating_result}'
         )
 
@@ -116,7 +113,7 @@ def update_status():
         images.append(image)
         wechat_locating_results.append(
             locate_template(image, template['wechat-no-message']))
-        logging.info(f'WeChat: {wechat_locating_results[-1]}')
+        logging.debug(f'WeChat: {wechat_locating_results[-1]}')
         if len(images) > NUM_IMAGES_DETECTING_FLASHING:
             images.pop(0)
             wechat_locating_results.pop(0)
@@ -142,7 +139,7 @@ def update_status():
             else:
                 db[str(('status', 'wechat'))] = 'unknown_error'
 
-        logging.info(f'{list(db.items()) = }')
+        logging.debug(f'{list(db.items()) = }')
 
         sleep(INTERVAL)
 
@@ -156,27 +153,71 @@ def get_status(app_name: App):
 def open_app(app_name: App):
     if app_name == 'tim':
         if db[str(('status', 'tim'))] in ['no_message', 'new_message']:
+            logging.info(
+                'TIM already opened, click the tray icon to restore the window'
+            )
             pyautogui.click(*db[str(('coordinates', 'tim'))])
             return
+
+        logging.info('TIM not opened, run the exe')
         subprocess.Popen(r'C:\\Program Files (x86)\\Tencent\\TIM\Bin\\TIM.exe')
 
     elif app_name == 'wechat':
         if db[str(('status', 'wechat'))] in ['no_message', 'new_message']:
+            logging.info(
+                'WeChat already opened, click the tray icon to restore the window'
+            )
             pyautogui.click(*db[str(('coordinates', 'wechat'))])
             return
+
+        logging.info('WeChat not opened, run the exe')
         subprocess.Popen(
             r'C:\\Program Files (x86)\\Tencent\\WeChat\\WeChat.exe')
-        # TODO: WeChat need to manually bring to top?
-
-        # TODO: fullscreen the apps and potential resize the VM window?
 
 
 with open(Path(__file__).parent.parent / 'config.yaml') as f:
     config = yaml.safe_load(f)
 
+
+def current_active_window_executable():
+    cwnd = win32gui.GetForegroundWindow()
+    _, pid = win32process.GetWindowThreadProcessId(cwnd)
+    for proc in psutil.process_iter():
+        if proc.pid == pid:
+            logging.info(f'Current active process: {proc}')
+            return proc.exe()
+    return None
+
+
+def forward_keypress(keypress):
+    if keypress == 'alt+w':
+        if '\\Tencent\\WeChat\\' not in current_active_window_executable():
+            open_app('wechat')
+            return
+        keypress = 'command:hide'
+    elif keypress == 'alt+q':
+        if '\\Tencent\\TIM\\' not in current_active_window_executable():
+            open_app('tim')
+            return
+        keypress = 'command:hide'
+
+    logging.info(f"Forward keypress {keypress}")
+    requests.post(
+        f"http://{config['linux']['host']}:{config['linux']['port']}/keyboard/{keypress}"
+    )
+
+
 if __name__ == '__main__':
-    p = Process(target=update_status)
-    p.start()
+    for keypress in config['forward']['keypress']:
+        logging.info(f"Register forwarding for keypress {keypress}")
+        keyboard.add_hotkey(keypress,
+                            forward_keypress,
+                            args=[keypress],
+                            suppress=True)
+
+    Process(target=update_status).start()
+
     uvicorn.run("main:app",
                 host=config['windows']['host'],
-                port=config['windows']['port'])
+                port=config['windows']['port'],
+                log_level='warning')

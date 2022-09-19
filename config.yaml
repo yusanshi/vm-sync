@@ -5,3 +5,11 @@ windows:
   vm-name: 'Windows 10 LTSC'
   host: '192.168.56.3'
   port: 8000
+forward:
+  keypress:
+    - 'f1'
+    - 'alt+w'
+    - 'alt+q'
+  host-key: 'ctrlright+altright'
+startup-app:
+  - 'wechat'
