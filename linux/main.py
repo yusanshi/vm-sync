@@ -5,12 +5,11 @@ from pathlib import Path
 from time import sleep
 from typing import Literal
 
-import pyautogui
 import requests
 import uvicorn
 import yaml
-import keyboard
 from fastapi import FastAPI
+from pynput import keyboard
 
 from tray_icon import TrayIcon
 
@@ -74,27 +73,28 @@ def hello():
     return 'Hello from Linux'
 
 
-Keypress = Literal[tuple(config['forward']['keypress'] + ['command:hide'])]
+Keypress = Literal['f1']
+Command = Literal['hide']
 
 
-@app.post("/keyboard/{keypress}")
+@app.post("/keypress/{keypress}")
 def send_keypress(keypress: Keypress):
     logging.info(f"Receive keypress {keypress.split('+')}")
-    if keypress == 'command:hide':
-        # Minimize the VM window
-        subprocess.run([
-            'wmctrl', '-r', config['windows']['vm-name'], '-b', 'toggle,shaded'
-        ])
-        return
-
     if keypress == 'f1':
         subprocess.run('flameshot gui', shell=True)
         return
 
-    # fallback: simulate the keypress in host
-    pyautogui.hotkey(*config['forward']['host-key'].split('+'))
-    sleep(0.1)
-    pyautogui.hotkey(*keypress.split('+'))
+
+@app.post("/command/{command}")
+def send_command(command: Command):
+    logging.info(f"Receive command {command}")
+    if command == 'hide':
+        # Minimize the VM window
+        subprocess.run([
+            'xdotool', 'search', '--name', config['windows']['vm-name'],
+            'windowminimize'
+        ])
+        return
 
 
 def wait_vm_start():
@@ -122,15 +122,34 @@ def open_app(app_name):
         wait_vm_start()
 
     # Bring vm to front
-    subprocess.run(['wmctrl', '-a', config['windows']['vm-name']])
+    subprocess.run([
+        'xdotool', 'search', '--name', config['windows']['vm-name'],
+        'windowactivate'
+    ])
 
     requests.get(f"{BASE_URL}/open/{app_name}")
 
 
-if __name__ == '__main__':
-    keyboard.add_hotkey('alt+w', open_app, args=['wechat'], suppress=True)
-    keyboard.add_hotkey('alt+q', open_app, args=['tim'], suppress=True)
+def run_if_in_host(f):
+    # TODO the registered hotkeys by pynput will still be triggered even in host
+    if not subprocess.check_output(
+            'xdotool getactivewindow getwindowname', shell=True,
+            text=True).startswith(config['windows']['vm-name']):
+        f()
 
+
+def register_hotkeys():
+    with keyboard.GlobalHotKeys({
+            '<alt>+w':
+            lambda: run_if_in_host(lambda: open_app('wechat')),
+            '<alt>+q':
+            lambda: run_if_in_host(lambda: open_app('tim'))
+    }) as h:
+        h.join()
+
+
+if __name__ == '__main__':
+    Process(target=register_hotkeys).start()
     Process(target=update_icons).start()
 
     for app_name in config['startup-app']:

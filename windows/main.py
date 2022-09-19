@@ -186,34 +186,47 @@ def current_active_window_executable():
         if proc.pid == pid:
             logging.info(f'Current active process: {proc}')
             return proc.exe()
+    logging.error('Cannot find current active process')
     return None
 
 
-def forward_keypress(keypress):
-    if keypress == 'alt+w':
-        if '\\Tencent\\WeChat\\' not in current_active_window_executable():
-            open_app('wechat')
-            return
-        keypress = 'command:hide'
-    elif keypress == 'alt+q':
-        if '\\Tencent\\TIM\\' not in current_active_window_executable():
-            open_app('tim')
-            return
-        keypress = 'command:hide'
+def forward(keypress):
+    if keypress in ['alt+w', 'alt+q']:
+        if keypress == 'alt+w':
+            if '\\Tencent\\WeChat\\' not in current_active_window_executable():
+                open_app('wechat')
+                return
+            command = 'hide'
+        elif keypress == 'alt+q':
+            if '\\Tencent\\TIM\\' not in current_active_window_executable():
+                open_app('tim')
+                return
+            command = 'hide'
 
+        forward_command(command)
+
+    if keypress in ['f1']:
+        forward_keypress(keypress)
+
+
+def forward_keypress(keypress):
     logging.info(f"Forward keypress {keypress}")
     requests.post(
-        f"http://{config['linux']['host']}:{config['linux']['port']}/keyboard/{keypress}"
+        f"http://{config['linux']['host']}:{config['linux']['port']}/keypress/{keypress}"
+    )
+
+
+def forward_command(command):
+    logging.info(f"Forward command {command}")
+    requests.post(
+        f"http://{config['linux']['host']}:{config['linux']['port']}/command/{command}"
     )
 
 
 if __name__ == '__main__':
-    for keypress in config['forward']['keypress']:
+    for keypress in ['f1', 'alt+w', 'alt+q']:
         logging.info(f"Register forwarding for keypress {keypress}")
-        keyboard.add_hotkey(keypress,
-                            forward_keypress,
-                            args=[keypress],
-                            suppress=True)
+        keyboard.add_hotkey(keypress, forward, args=[keypress], suppress=True)
 
     Process(target=update_status).start()
 
