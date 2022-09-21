@@ -3,7 +3,6 @@ import subprocess
 from multiprocessing import Process
 from pathlib import Path
 from time import sleep
-from typing import Literal
 
 import requests
 import uvicorn
@@ -29,6 +28,13 @@ def get_app_status(app_name):
     try:
         return requests.get(f"{BASE_URL}/status/{app_name}",
                             timeout=0.1).json()
+    except Exception:
+        return 'vm_offline'
+
+
+def get_vm_active():
+    try:
+        return requests.get(f"{BASE_URL}/active", timeout=0.1).json()
     except Exception:
         return 'vm_offline'
 
@@ -73,30 +79,6 @@ def hello():
     return 'Hello from Linux'
 
 
-Keypress = Literal['f1']
-Command = Literal['hide']
-
-
-@app.post("/keypress/{keypress}")
-def send_keypress(keypress: Keypress):
-    logging.info(f"Receive keypress {keypress.split('+')}")
-    if keypress == 'f1':
-        subprocess.run('flameshot gui', shell=True)
-        return
-
-
-@app.post("/command/{command}")
-def send_command(command: Command):
-    logging.info(f"Receive command {command}")
-    if command == 'hide':
-        # Minimize the VM window
-        subprocess.run([
-            'xdotool', 'search', '--name', config['windows']['vm-name'],
-            'windowminimize'
-        ])
-        return
-
-
 def wait_vm_start():
     name = config['windows']['vm-name']
     if name not in subprocess.check_output('VBoxManage list runningvms',
@@ -130,26 +112,64 @@ def open_app(app_name):
     requests.get(f"{BASE_URL}/open/{app_name}")
 
 
-def run_if_in_host(f):
-    # TODO the registered hotkeys by pynput will still be triggered even in host
-    if not subprocess.check_output(
-            'xdotool getactivewindow getwindowname', shell=True,
-            text=True).startswith(config['windows']['vm-name']):
-        f()
+def vm_is_active():
+    return subprocess.check_output('xdotool getactivewindow getwindowname',
+                                   shell=True,
+                                   text=True).startswith(
+                                       config['windows']['vm-name'])
+
+
+def app_is_active(app_name):
+    if app_name == 'tim':
+        return '\\Tencent\\TIM\\' in get_vm_active()
+    if app_name == 'wechat':
+        return '\\Tencent\\WeChat\\' in get_vm_active()
+
+
+def toggle_app_display(app_name):
+    if vm_is_active() and app_is_active(app_name):
+        logging.info(f'App {app_name} already active in front, minimize it')
+        subprocess.run([
+            'xdotool', 'search', '--name', config['windows']['vm-name'],
+            'windowminimize'
+        ])
+        return
+
+    logging.info(f'App {app_name} not in front, open it')
+    open_app(app_name)
 
 
 def register_hotkeys():
     with keyboard.GlobalHotKeys({
-            '<alt>+w':
-            lambda: run_if_in_host(lambda: open_app('wechat')),
-            '<alt>+q':
-            lambda: run_if_in_host(lambda: open_app('tim'))
+            '<alt>+w': lambda: toggle_app_display('wechat'),
+            '<alt>+q': lambda: toggle_app_display('tim'),
     }) as h:
         h.join()
 
 
+def register_single_hotkey(hotkey, callback):
+    """
+    keyboard.GlobalHotKeys({'<f1>': lambda: print('f1')}) is not working,
+    use this instead
+    """
+
+    def on_press(key):
+        if key == hotkey:
+            callback()
+
+    with keyboard.Listener(on_press=on_press) as listener:
+        listener.join()
+
+
 if __name__ == '__main__':
     Process(target=register_hotkeys).start()
+    Process(target=register_single_hotkey,
+            args=(
+                keyboard.Key.f1,
+                lambda: vm_is_active() and subprocess.run('flameshot gui',
+                                                          shell=True),
+            )).start()
+
     Process(target=update_icons).start()
 
     for app_name in config['startup-app']:

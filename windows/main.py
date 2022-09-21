@@ -10,7 +10,6 @@ import keyboard
 import mss
 import numpy as np
 import pyautogui
-import requests
 import uvicorn
 import yaml
 from fastapi import FastAPI
@@ -149,6 +148,15 @@ def get_status(app_name: App):
     return db[str(('status', app_name))]
 
 
+@app.get("/active")
+def get_active():
+    cwnd = win32gui.GetForegroundWindow()
+    _, pid = win32process.GetWindowThreadProcessId(cwnd)
+    process = psutil.Process(pid)
+    logging.info(f'Current active process: {process}')
+    return process.exe()
+
+
 @app.get("/open/{app_name}")
 def open_app(app_name: App):
     if app_name == 'tim':
@@ -178,55 +186,10 @@ def open_app(app_name: App):
 with open(Path(__file__).parent.parent / 'config.yaml') as f:
     config = yaml.safe_load(f)
 
-
-def current_active_window_executable():
-    cwnd = win32gui.GetForegroundWindow()
-    _, pid = win32process.GetWindowThreadProcessId(cwnd)
-    for proc in psutil.process_iter():
-        if proc.pid == pid:
-            logging.info(f'Current active process: {proc}')
-            return proc.exe()
-    logging.error('Cannot find current active process')
-    return None
-
-
-def forward(keypress):
-    if keypress in ['alt+w', 'alt+q']:
-        if keypress == 'alt+w':
-            if '\\Tencent\\WeChat\\' not in current_active_window_executable():
-                open_app('wechat')
-                return
-            command = 'hide'
-        elif keypress == 'alt+q':
-            if '\\Tencent\\TIM\\' not in current_active_window_executable():
-                open_app('tim')
-                return
-            command = 'hide'
-
-        forward_command(command)
-
-    if keypress in ['f1']:
-        forward_keypress(keypress)
-
-
-def forward_keypress(keypress):
-    logging.info(f"Forward keypress {keypress}")
-    requests.post(
-        f"http://{config['linux']['host']}:{config['linux']['port']}/keypress/{keypress}"
-    )
-
-
-def forward_command(command):
-    logging.info(f"Forward command {command}")
-    requests.post(
-        f"http://{config['linux']['host']}:{config['linux']['port']}/command/{command}"
-    )
-
-
 if __name__ == '__main__':
-    for keypress in ['f1', 'alt+w', 'alt+q']:
-        logging.info(f"Register forwarding for keypress {keypress}")
-        keyboard.add_hotkey(keypress, forward, args=[keypress], suppress=True)
+    keyboard.add_hotkey('f1',
+                        lambda: logging.info('F1 suppressed in VM.'),
+                        suppress=True)
 
     Process(target=update_status).start()
 
