@@ -3,6 +3,7 @@ import subprocess
 from multiprocessing import Process
 from pathlib import Path
 from time import sleep
+from datetime import datetime
 
 import requests
 import uvicorn
@@ -12,7 +13,18 @@ from pynput import keyboard
 
 from tray_icon import TrayIcon
 
-logging.basicConfig(level=logging.INFO, format="[%(asctime)s] %(message)s")
+log_dir = Path(__file__).parent / 'log'
+log_dir.mkdir(exist_ok=True)
+logging.basicConfig(
+    level=logging.INFO,
+    format="[%(asctime)s] %(message)s",
+    handlers=[
+        logging.FileHandler(
+            log_dir /
+            f"{datetime.now().replace(microsecond=0).isoformat().replace(':','-')}.txt"
+        ),
+        logging.StreamHandler()
+    ])
 
 app = FastAPI()
 
@@ -47,13 +59,15 @@ def update_icons():
         for k2 in ['no-message', 'new-message', 'gray']
     }
     tray_icons = {
-        'tim': TrayIcon(
+        'tim':
+        TrayIcon(
             icons['tim-gray'],
-            lambda: open_app('tim'),
+            lambda: toggle_app_display('tim'),
         ),
-        'wechat': TrayIcon(
+        'wechat':
+        TrayIcon(
             icons['wechat-gray'],
-            lambda: open_app('wechat'),
+            lambda: toggle_app_display('wechat'),
         )
     }
     while True:
@@ -161,13 +175,20 @@ def register_single_hotkey(hotkey, callback):
         listener.join()
 
 
+def flameshot_callback():
+    if vm_is_active():
+        logging.info('VM is active, run the flameshot command')
+        subprocess.run('flameshot gui', shell=True)
+        return
+    logging.info('Host is active, skip flameshot command')
+
+
 if __name__ == '__main__':
     Process(target=register_hotkeys).start()
     Process(target=register_single_hotkey,
             args=(
                 keyboard.Key.f1,
-                lambda: vm_is_active() and subprocess.run('flameshot gui',
-                                                          shell=True),
+                flameshot_callback,
             )).start()
 
     Process(target=update_icons).start()
