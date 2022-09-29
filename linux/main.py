@@ -29,7 +29,7 @@ logging.basicConfig(
 
 app = FastAPI()
 
-INTERVAL = 1.0
+INTERVAL = 0.5
 
 with open(Path(__file__).parent.parent / 'config.yaml') as f:
     config = yaml.safe_load(f)
@@ -52,39 +52,26 @@ def get_vm_active():
         return 'vm_offline'
 
 
-def update_icons():
+def update_icon(app_name):
     icons = {
-        f'{k1}-{k2}': str(
-            Path(__file__).parent.parent / 'image' / 'icon' / f'{k1}-{k2}.png')
-        for k1 in ['tim', 'wechat']
-        for k2 in ['no-message', 'new-message', 'gray']
+        k: str(
+            Path(__file__).parent.parent / 'image' / 'icon' /
+            f'{app_name}-{k}.png')
+        for k in ['no-message', 'new-message', 'gray']
     }
-    tray_icons = {
-        'tim':
-        TrayIcon(
-            icons['tim-gray'],
-            lambda: toggle_app_display('tim'),
-        ),
-        'wechat':
-        TrayIcon(
-            icons['wechat-gray'],
-            lambda: toggle_app_display('wechat'),
-        )
-    }
-    while True:
-        status = get_app_status('tim')
-        if status in ['no_message', 'new_message']:
-            icon = icons[f"tim-{status.replace('_','-')}"]
-        else:
-            icon = icons['tim-gray']
-        tray_icons['tim'].set_icon(icon)
+    tray_icon = TrayIcon(
+        icons['gray'],
+        lambda: toggle_app_display(app_name),
+    )
 
-        status = get_app_status('wechat')
+    while True:
+        status = get_app_status(app_name)
         if status in ['no_message', 'new_message']:
-            icon = icons[f"wechat-{status.replace('_','-')}"]
+            icon = icons[f"{status.replace('_','-')}"]
         else:
-            icon = icons['wechat-gray']
-        tray_icons['wechat'].set_icon(icon)
+            icon = icons['gray']
+
+        tray_icon.change_icon(icon)
 
         sleep(INTERVAL)
 
@@ -199,7 +186,8 @@ if __name__ == '__main__':
                 flameshot_callback,
             )).start()
 
-    Process(target=update_icons).start()
+    for app_name in ['tim', 'wechat']:
+        Process(target=update_icon, args=(app_name, )).start()
 
     Process(target=message_box_action,
             args=(
