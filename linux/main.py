@@ -12,6 +12,7 @@ from fastapi import FastAPI
 from pynput import keyboard
 
 from tray_icon import TrayIcon
+from message_box import message_box_action
 
 log_dir = Path(__file__).parent / 'log'
 log_dir.mkdir(exist_ok=True)
@@ -183,6 +184,13 @@ def flameshot_callback():
     logging.info('Host is active, skip flameshot command')
 
 
+def startup_app():
+    logging.info('Open startup apps')
+    for app_name in config['startup-app']:
+        Process(target=open_app, args=(app_name, )).start()
+        sleep(2)
+
+
 if __name__ == '__main__':
     Process(target=register_hotkeys).start()
     Process(target=register_single_hotkey,
@@ -193,8 +201,12 @@ if __name__ == '__main__':
 
     Process(target=update_icons).start()
 
-    for app_name in config['startup-app']:
-        Process(target=open_app, args=(app_name, )).start()
+    Process(target=message_box_action,
+            args=(
+                startup_app,
+                'Run start-up apps?',
+                5000,
+            )).start()
 
     # wait for network available
     while True:
