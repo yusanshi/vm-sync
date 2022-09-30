@@ -9,14 +9,14 @@ import cv2
 import keyboard
 import mss
 import numpy as np
+import psutil
 import pyautogui
 import uvicorn
+import win32gui
+import win32process
 import yaml
 from fastapi import FastAPI
 from sqlitedict import SqliteDict
-import win32gui
-import win32process
-import psutil
 
 TRAY_WIDTH = 800
 TRAY_HEIGHT = 80
@@ -187,9 +187,11 @@ with open(Path(__file__).parent.parent / 'config.yaml') as f:
     config = yaml.safe_load(f)
 
 if __name__ == '__main__':
-    keyboard.add_hotkey('f1',
-                        lambda: logging.info('F1 suppressed in VM.'),
-                        suppress=True)
+    for x in config['capture-hotkey']:
+        keyboard.add_hotkey(x['hotkey']['keyboard'],
+                            lambda: logging.info(
+                                f"{x['hotkey']['keyboard']} suppressed in VM"),
+                            suppress=True)
 
     Process(target=update_status).start()
 

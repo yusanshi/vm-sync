@@ -1,9 +1,9 @@
 import logging
 import subprocess
+from datetime import datetime
 from multiprocessing import Process
 from pathlib import Path
 from time import sleep
-from datetime import datetime
 
 import requests
 import uvicorn
@@ -11,8 +11,8 @@ import yaml
 from fastapi import FastAPI
 from pynput import keyboard
 
-from tray_icon import TrayIcon
 from message_box import message_box_action
+from tray_icon import TrayIcon
 
 log_dir = Path(__file__).parent / 'log'
 log_dir.mkdir(exist_ok=True)
@@ -145,30 +145,13 @@ def register_hotkeys():
     with keyboard.GlobalHotKeys({
             '<alt>+w': lambda: toggle_app_display('wechat'),
             '<alt>+q': lambda: toggle_app_display('tim'),
+            **{
+                x['hotkey']['pynput']: lambda: vm_is_active() and subprocess.run(x['command'],
+                                                                                 shell=True)
+                for x in config['capture-hotkey']
+            }
     }) as h:
         h.join()
-
-
-def register_single_hotkey(hotkey, callback):
-    """
-    keyboard.GlobalHotKeys({'<f1>': lambda: print('f1')}) is not working,
-    use this instead
-    """
-
-    def on_press(key):
-        if key == hotkey:
-            callback()
-
-    with keyboard.Listener(on_press=on_press) as listener:
-        listener.join()
-
-
-def flameshot_callback():
-    if vm_is_active():
-        logging.info('VM is active, run the flameshot command')
-        subprocess.run('flameshot gui', shell=True)
-        return
-    logging.info('Host is active, skip flameshot command')
 
 
 def startup_app():
@@ -180,11 +163,6 @@ def startup_app():
 
 if __name__ == '__main__':
     Process(target=register_hotkeys).start()
-    Process(target=register_single_hotkey,
-            args=(
-                keyboard.Key.f1,
-                flameshot_callback,
-            )).start()
 
     for app_name in ['tim', 'wechat']:
         Process(target=update_icon, args=(app_name, )).start()

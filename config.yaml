@@ -9,3 +9,10 @@ windows:
 
 startup-app:
   - 'wechat'
+
+# capture hotkey in windows, and run command in linux
+capture-hotkey:
+  - hotkey:
+      pynput: '<65470>' # '<f1>' not works, use this instead. https://github.com/moses-palmer/pynput/issues/499
+      keyboard: 'f1'
+    command: 'flameshot gui'
