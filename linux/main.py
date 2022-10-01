@@ -6,9 +6,7 @@ from pathlib import Path
 from time import sleep
 
 import requests
-import uvicorn
 import yaml
-from fastapi import FastAPI
 from pynput import keyboard
 
 from message_box import message_box_action
@@ -26,8 +24,6 @@ logging.basicConfig(
         ),
         logging.StreamHandler()
     ])
-
-app = FastAPI()
 
 INTERVAL = 0.5
 
@@ -76,13 +72,8 @@ def update_icon(app_name):
         sleep(INTERVAL)
 
 
-@app.get("/")
-def hello():
-    return 'Hello from Linux'
-
-
 def wait_vm_start():
-    name = config['windows']['vm-name']
+    name = config['windows']['name']
     if name not in subprocess.check_output('VBoxManage list runningvms',
                                            shell=True,
                                            text=True):
@@ -107,18 +98,18 @@ def open_app(app_name):
 
     # Bring vm to front
     subprocess.run([
-        'xdotool', 'search', '--name', config['windows']['vm-name'],
+        'xdotool', 'search', '--name', config['windows']['name'],
         'windowactivate'
     ])
 
-    requests.get(f"{BASE_URL}/open/{app_name}")
+    requests.post(f"{BASE_URL}/open/{app_name}")
 
 
 def vm_is_active():
     return subprocess.check_output('xdotool getactivewindow getwindowname',
                                    shell=True,
                                    text=True).startswith(
-                                       config['windows']['vm-name'])
+                                       config['windows']['name'])
 
 
 def app_is_active(app_name):
@@ -132,7 +123,7 @@ def toggle_app_display(app_name):
     if vm_is_active() and app_is_active(app_name):
         logging.info(f'App {app_name} already active in front, minimize it')
         subprocess.run([
-            'xdotool', 'search', '--name', config['windows']['vm-name'],
+            'xdotool', 'search', '--name', config['windows']['name'],
             'windowminimize'
         ])
         return
@@ -171,15 +162,5 @@ if __name__ == '__main__':
             args=(
                 startup_app,
                 'Run start-up apps?',
-                5000,
+                8000,
             )).start()
-
-    # wait for network available
-    while True:
-        if subprocess.call(['ping', '-c', '1', config['linux']['host']]) == 0:
-            break
-        sleep(1)
-
-    uvicorn.run("main:app",
-                host=config['linux']['host'],
-                port=config['linux']['port'])

@@ -2,7 +2,6 @@ import wx
 import wx.adv
 import wx.lib.newevent
 from threading import Thread
-from multiprocessing import Process
 
 
 class TaskBarIcon(wx.adv.TaskBarIcon):

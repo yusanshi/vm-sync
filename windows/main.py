@@ -39,9 +39,6 @@ app = FastAPI()
 db_path = Path(__file__).parent / 'db.sqlite'
 db = SqliteDict(db_path)
 
-App = Literal['tim', 'wechat']
-Status = Literal['no_message', 'new_message', 'not_found', 'unknown_error']
-
 
 @app.get("/")
 def hello():
@@ -143,6 +140,9 @@ def update_status():
         sleep(INTERVAL)
 
 
+App = Literal['tim', 'wechat']
+
+
 @app.get("/status/{app_name}")
 def get_status(app_name: App):
     return db[str(('status', app_name))]
@@ -157,7 +157,7 @@ def get_active():
     return process.exe()
 
 
-@app.get("/open/{app_name}")
+@app.post("/open/{app_name}")
 def open_app(app_name: App):
     if app_name == 'tim':
         if db[str(('status', 'tim'))] in ['no_message', 'new_message']:
