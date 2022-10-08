@@ -98,7 +98,8 @@ def open_app(app_name):
 
     # Bring vm to front
     subprocess.run([
-        'xdotool', 'search', '--name', config['windows']['name'],
+        'xdotool', 'search', '--name',
+        f"{config['windows']['name']} \[Running\] \- Oracle VM VirtualBox",
         'windowactivate'
     ])
 
@@ -106,10 +107,13 @@ def open_app(app_name):
 
 
 def vm_is_active():
-    return subprocess.check_output('xdotool getactivewindow getwindowname',
-                                   shell=True,
-                                   text=True).startswith(
-                                       config['windows']['name'])
+    try:
+        current_active_name = subprocess.check_output(
+            'xdotool getactivewindow getwindowname', shell=True,
+            text=True).strip()
+    except subprocess.CalledProcessError:
+        return False
+    return current_active_name == f"{config['windows']['name']} [Running] - Oracle VM VirtualBox"
 
 
 def app_is_active(app_name):
@@ -123,7 +127,8 @@ def toggle_app_display(app_name):
     if vm_is_active() and app_is_active(app_name):
         logging.info(f'App {app_name} already active in front, minimize it')
         subprocess.run([
-            'xdotool', 'search', '--name', config['windows']['name'],
+            'xdotool', 'search', '--name',
+            f"{config['windows']['name']} \[Running\] \- Oracle VM VirtualBox",
             'windowminimize'
         ])
         return
