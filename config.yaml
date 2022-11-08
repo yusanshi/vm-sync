@@ -1,6 +1,6 @@
 windows:
   name: 'Windows 10 LTSC'
-  host: '192.168.56.3'
+  host: '192.168.56.101'
   port: 8000
 
 startup-app:

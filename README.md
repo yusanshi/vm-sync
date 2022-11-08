@@ -16,3 +16,14 @@ My environments:
 - Guest: Windows 10 LTSC
 - VM software: VirtualBox 6.1
 
+
+Linux:
+```bash
+sudo apt install python3-tk xdotool
+# https://wxpython.org/pages/downloads/
+pip install -f https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-22.04 wxPython
+```
+
+Windows:
+```bash
+```
