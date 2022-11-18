@@ -1,3 +1,7 @@
+linux:
+  host: '192.168.56.1'
+  port: 8000
+
 windows:
   name: 'Windows 10 LTSC'
   host: '192.168.56.101'
@@ -8,7 +12,7 @@ startup-app:
 
 # capture hotkey in windows, and run command in linux
 capture-hotkey:
-  - hotkey:
-      pynput: '<65470>' # '<f1>' not works, use this instead. https://github.com/moses-palmer/pynput/issues/499
-      keyboard: 'f1'
+  - hotkey: 'f1'
     command: 'flameshot gui'
+  - hotkey: 'ctrl+space'
+    command: 'ulauncher-toggle'

@@ -5,9 +5,12 @@ from datetime import datetime
 from multiprocessing import Process
 from pathlib import Path
 from time import sleep
+from typing import Literal
 
 import requests
+import uvicorn
 import yaml
+from fastapi import FastAPI
 from pynput import keyboard
 
 from message_box import message_box_action
@@ -25,6 +28,8 @@ logging.basicConfig(
         ),
         logging.StreamHandler()
     ])
+
+app = FastAPI()
 
 INTERVAL = 0.5
 
@@ -71,6 +76,23 @@ def update_icon(app_name):
         tray_icon.change_icon(icon)
 
         sleep(INTERVAL)
+
+
+@app.get("/")
+def hello():
+    return 'Hello from Linux'
+
+
+Keypress = Literal[tuple(x['hotkey'] for x in config['capture-hotkey'])]
+
+
+@app.post("/keypress/{keypress}")
+def forward_keypress(keypress: Keypress):
+    logging.info(f"Receive keypress {keypress}")
+    for x in config['capture-hotkey']:
+        if keypress == x['hotkey']:
+            # use `Popen` (non-blocking) instead of 'run' (blocking)
+            subprocess.Popen(x['command'], shell=True)
 
 
 def wait_vm_start():
@@ -141,12 +163,7 @@ def toggle_app_display(app_name):
 def register_hotkeys():
     with keyboard.GlobalHotKeys({
             '<alt>+w': lambda: toggle_app_display('wechat'),
-            '<alt>+q': lambda: toggle_app_display('tim'),
-            **{
-                x['hotkey']['pynput']: lambda: vm_is_active() and subprocess.run(x['command'],
-                                                                                 shell=True)
-                for x in config['capture-hotkey']
-            }
+            '<alt>+q': lambda: toggle_app_display('tim')
     }) as h:
         h.join()
 
@@ -170,3 +187,13 @@ if __name__ == '__main__':
                 'Run start-up apps?',
                 8000,
             )).start()
+
+    # wait for network available
+    while True:
+        if subprocess.call(['ping', '-c', '1', config['linux']['host']]) == 0:
+            break
+        sleep(1)
+
+    uvicorn.run("main:app",
+                host=config['linux']['host'],
+                port=config['linux']['port'])

@@ -5,6 +5,7 @@ from pathlib import Path
 from time import sleep
 from typing import Literal
 
+import requests
 import cv2
 import keyboard
 import mss
@@ -145,7 +146,10 @@ App = Literal['tim', 'wechat']
 
 @app.get("/status/{app_name}")
 def get_status(app_name: App):
-    return db[str(('status', app_name))]
+    try:
+        return db[str(('status', app_name))]
+    except KeyError:
+        return 'unknown_error'
 
 
 @app.get("/active")
@@ -186,11 +190,19 @@ def open_app(app_name: App):
 with open(Path(__file__).parent.parent / 'config.yaml') as f:
     config = yaml.safe_load(f)
 
+
+def hotkey_callback(hotkey):
+    logging.info(f"{hotkey} suppressed in VM")
+    requests.post(
+        f"http://{config['linux']['host']}:{config['linux']['port']}/keypress/{hotkey}"
+    )
+
+
 if __name__ == '__main__':
     for x in config['capture-hotkey']:
-        keyboard.add_hotkey(x['hotkey']['keyboard'],
-                            lambda: logging.info(
-                                f"{x['hotkey']['keyboard']} suppressed in VM"),
+        keyboard.add_hotkey(x['hotkey'],
+                            hotkey_callback,
+                            args=(x['hotkey'], ),
                             suppress=True)
 
     Process(target=update_status).start()
