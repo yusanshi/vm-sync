@@ -11,9 +11,8 @@ import requests
 import uvicorn
 import yaml
 from fastapi import FastAPI
-from pynput import keyboard
-
 from message_box import message_box_action
+from pynput import keyboard
 from tray_icon import TrayIcon
 
 log_dir = Path(__file__).parent / 'log'

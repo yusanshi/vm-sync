@@ -11,8 +11,14 @@ startup-app:
   - 'wechat'
 
 # capture hotkey in windows, and run command in linux
+# key codes from https://learn.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes
 capture-hotkey:
   - hotkey: 'f1'
+    keycodes:
+      - 0x70
     command: 'flameshot gui'
   - hotkey: 'ctrl+space'
+    keycodes:
+      - 0xA2
+      - 0x20
     command: 'ulauncher-toggle'

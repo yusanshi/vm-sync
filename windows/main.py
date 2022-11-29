@@ -1,22 +1,23 @@
 import logging
 import subprocess
+from functools import partial
 from multiprocessing import Process
 from pathlib import Path
 from time import sleep
 from typing import Literal
 
-import requests
 import cv2
-import keyboard
 import mss
 import numpy as np
 import psutil
 import pyautogui
+import requests
 import uvicorn
 import win32gui
 import win32process
 import yaml
 from fastapi import FastAPI
+from hotkey import add_hotkey
 from sqlitedict import SqliteDict
 
 TRAY_WIDTH = 800
@@ -200,10 +201,11 @@ def hotkey_callback(hotkey):
 
 if __name__ == '__main__':
     for x in config['capture-hotkey']:
-        keyboard.add_hotkey(x['hotkey'],
-                            hotkey_callback,
-                            args=(x['hotkey'], ),
-                            suppress=True)
+        Process(target=add_hotkey,
+                args=(
+                    x['keycodes'],
+                    partial(hotkey_callback, x['hotkey']),
+                )).start()
 
     Process(target=update_status).start()
 
