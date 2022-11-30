@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import logging
+import re
 import subprocess
 from datetime import datetime
 from multiprocessing import Process
@@ -36,6 +37,7 @@ with open(Path(__file__).parent.parent / 'config.yaml') as f:
     config = yaml.safe_load(f)
 
 BASE_URL = f"http://{config['windows']['host']}:{config['windows']['port']}"
+WINDOW_NAME_REGEX = f"{config['windows']['name']} (\(Snapshot .+\) )?\[Running\] \- Oracle VM VirtualBox"
 
 
 def get_app_status(app_name):
@@ -119,11 +121,8 @@ def open_app(app_name):
         wait_vm_start()
 
     # Bring vm to front
-    subprocess.run([
-        'xdotool', 'search', '--name',
-        f"{config['windows']['name']} \[Running\] \- Oracle VM VirtualBox",
-        'windowactivate'
-    ])
+    subprocess.run(
+        ['xdotool', 'search', '--name', WINDOW_NAME_REGEX, 'windowactivate'])
 
     requests.post(f"{BASE_URL}/open/{app_name}")
 
@@ -135,7 +134,7 @@ def vm_is_active():
             text=True).strip()
     except subprocess.CalledProcessError:
         return False
-    return current_active_name == f"{config['windows']['name']} [Running] - Oracle VM VirtualBox"
+    return re.fullmatch(WINDOW_NAME_REGEX, current_active_name)
 
 
 def app_is_active(app_name):
@@ -149,9 +148,7 @@ def toggle_app_display(app_name):
     if vm_is_active() and app_is_active(app_name):
         logging.info(f'App {app_name} already active in front, minimize it')
         subprocess.run([
-            'xdotool', 'search', '--name',
-            f"{config['windows']['name']} \[Running\] \- Oracle VM VirtualBox",
-            'windowminimize'
+            'xdotool', 'search', '--name', WINDOW_NAME_REGEX, 'windowminimize'
         ])
         return
 
