@@ -18,7 +18,7 @@ import win32process
 import yaml
 from fastapi import FastAPI
 from hotkey import add_hotkey
-from sqlitedict import SqliteDict
+from UltraDict import UltraDict
 
 TRAY_WIDTH = 800
 TRAY_HEIGHT = 80
@@ -38,8 +38,7 @@ logging.basicConfig(level=logging.INFO, format="[%(asctime)s] %(message)s")
 
 app = FastAPI()
 
-db_path = Path(__file__).parent / 'db.sqlite'
-db = SqliteDict(db_path)
+db = UltraDict(name='vm-sync')
 
 
 @app.get("/")
@@ -58,11 +57,10 @@ def locate_template(image, template):
 
 
 def update_status():
-    db = SqliteDict(db_path, autocommit=True)
-    db[str(('status', 'tim'))] = 'not_found'
-    db[str(('status', 'wechat'))] = 'not_found'
-    db[str(('coordinates', 'tim'))] = None
-    db[str(('coordinates', 'wechat'))] = None
+    db[('status', 'tim')] = 'not_found'
+    db[('status', 'wechat')] = 'not_found'
+    db[('coordinates', 'tim')] = None
+    db[('coordinates', 'wechat')] = None
 
     images = []
     wechat_locating_results = []
@@ -96,17 +94,17 @@ def update_status():
         )
 
         if no_message and not new_message:
-            db[str(('status', 'tim'))] = 'no_message'
-            db[str(('coordinates',
-                    'tim'))] = offset_cooridate(no_message_locating_result[1])
+            db[('status', 'tim')] = 'no_message'
+            db[('coordinates',
+                'tim')] = offset_cooridate(no_message_locating_result[1])
         elif not no_message and new_message:
-            db[str(('status', 'tim'))] = 'new_message'
-            db[str(('coordinates',
-                    'tim'))] = offset_cooridate(new_message_locating_result[1])
+            db[('status', 'tim')] = 'new_message'
+            db[('coordinates',
+                'tim')] = offset_cooridate(new_message_locating_result[1])
         elif no_message and new_message:
-            db[str(('status', 'tim'))] = 'unknown_error'
+            db[('status', 'tim')] = 'unknown_error'
         elif not no_message and not new_message:
-            db[str(('status', 'tim'))] = 'not_found'
+            db[('status', 'tim')] = 'not_found'
 
         images.append(image)
         wechat_locating_results.append(
@@ -125,17 +123,17 @@ def update_status():
             wechat_hidden_count = len(
                 wechat_locating_results) - wechat_displayed_count
             if wechat_displayed_count >= 1 and wechat_hidden_count >= 1:
-                db[str(('status', 'wechat'))] = 'new_message'
-                db[str(('coordinates',
-                        'wechat'))] = offset_cooridate(wechat_displayed[-1][1])
+                db[('status', 'wechat')] = 'new_message'
+                db[('coordinates',
+                    'wechat')] = offset_cooridate(wechat_displayed[-1][1])
             elif wechat_displayed_count == len(wechat_locating_results):
-                db[str(('status', 'wechat'))] = 'no_message'
-                db[str(('coordinates',
-                        'wechat'))] = offset_cooridate(wechat_displayed[-1][1])
+                db[('status', 'wechat')] = 'no_message'
+                db[('coordinates',
+                    'wechat')] = offset_cooridate(wechat_displayed[-1][1])
             elif wechat_hidden_count == len(wechat_locating_results):
-                db[str(('status', 'wechat'))] = 'not_found'
+                db[('status', 'wechat')] = 'not_found'
             else:
-                db[str(('status', 'wechat'))] = 'unknown_error'
+                db[('status', 'wechat')] = 'unknown_error'
 
         logging.debug(f'{list(db.items()) = }')
 
@@ -148,7 +146,7 @@ App = Literal['tim', 'wechat']
 @app.get("/status/{app_name}")
 def get_status(app_name: App):
     try:
-        return db[str(('status', app_name))]
+        return db[('status', app_name)]
     except KeyError:
         return 'unknown_error'
 
@@ -165,22 +163,22 @@ def get_active():
 @app.post("/open/{app_name}")
 def open_app(app_name: App):
     if app_name == 'tim':
-        if db[str(('status', 'tim'))] in ['no_message', 'new_message']:
+        if db[('status', 'tim')] in ['no_message', 'new_message']:
             logging.info(
                 'TIM already opened, click the tray icon to restore the window'
             )
-            pyautogui.click(*db[str(('coordinates', 'tim'))])
+            pyautogui.click(*db[('coordinates', 'tim')])
             return
 
         logging.info('TIM not opened, run the exe')
         subprocess.Popen(r'C:\\Program Files (x86)\\Tencent\\TIM\Bin\\TIM.exe')
 
     elif app_name == 'wechat':
-        if db[str(('status', 'wechat'))] in ['no_message', 'new_message']:
+        if db[('status', 'wechat')] in ['no_message', 'new_message']:
             logging.info(
                 'WeChat already opened, click the tray icon to restore the window'
             )
-            pyautogui.click(*db[str(('coordinates', 'wechat'))])
+            pyautogui.click(*db[('coordinates', 'wechat')])
             return
 
         logging.info('WeChat not opened, run the exe')

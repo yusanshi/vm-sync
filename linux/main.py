@@ -168,7 +168,6 @@ def startup_app():
     logging.info('Open startup apps')
     for app_name in config['startup-app']:
         Process(target=open_app, args=(app_name, )).start()
-        sleep(2)
 
 
 if __name__ == '__main__':

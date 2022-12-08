@@ -25,5 +25,10 @@ pip install -f https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-22
 ```
 
 Windows:
+
 ```bash
+# Install Microsoft C++ Build Tools
+https://visualstudio.microsoft.com/visual-cpp-build-tools/
+
+pip install fastapi uvicorn PyAutoGUI UltraDict mss
 ```
