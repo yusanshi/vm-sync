@@ -23,3 +23,15 @@ capture-hotkey:
       - 0xA2
       - 0x20
     command: 'ulauncher-toggle'
+  - hotkey: 'ctrl+alt+t'
+    keycodes:
+      - 0xA2
+      - 0xA4
+      - 0x54
+    command: 'gnome-terminal'
+  - hotkey: 'alt+tab'
+    keycodes:
+      - 0xA4
+      - 0x09
+    # motivated by https://askubuntu.com/questions/269574/wmctrl-focus-most-recent-window-of-an-app
+    command: 'wmctrl -ia `xprop -root _NET_CLIENT_LIST_STACKING | sed "s/, /\n/g" | tail -n 2 | head -n 1`'

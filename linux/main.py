@@ -93,7 +93,7 @@ def forward_keypress(keypress: Keypress):
     for x in config['capture-hotkey']:
         if keypress == x['hotkey']:
             # use `Popen` (non-blocking) instead of 'run' (blocking)
-            subprocess.Popen(x['command'], shell=True)
+            subprocess.Popen(x['command'], shell=True, cwd=Path.home())
 
 
 def wait_vm_start():
@@ -107,7 +107,7 @@ def wait_vm_start():
         try:
             if requests.get(BASE_URL, timeout=0.1).status_code == 200:
                 logging.info('Get response from VM')
-                sleep(3)  # TOOD wait...
+                sleep(3)  # wait...
                 return
         except Exception:
             pass

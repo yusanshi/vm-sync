@@ -7,14 +7,14 @@ def add_hotkey(keycodes, callback):
 
     def win32_event_filter(msg, data):
         if data.vkCode in status:
-            if msg == 256:  # key down
+            if msg == 256 or msg == 260:  # key down
                 status[data.vkCode] = True
                 if all(status.values()):
                     listener._suppress = True
                     callback()
                     return
 
-            elif msg == 257:  # key up
+            elif msg == 257 or msg == 261:  # key up
                 status[data.vkCode] = False
 
         listener._suppress = False
