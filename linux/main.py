@@ -13,7 +13,6 @@ import uvicorn
 import yaml
 from fastapi import FastAPI
 from message_box import message_box_action
-from pynput import keyboard
 from tray_icon import TrayIcon
 
 log_dir = Path(__file__).parent / 'log'
@@ -156,14 +155,6 @@ def toggle_app_display(app_name):
     open_app(app_name)
 
 
-def register_hotkeys():
-    with keyboard.GlobalHotKeys({
-            '<alt>+w': lambda: toggle_app_display('wechat'),
-            '<alt>+q': lambda: toggle_app_display('tim')
-    }) as h:
-        h.join()
-
-
 def startup_app():
     logging.info('Open startup apps')
     for app_name in config['startup-app']:
@@ -171,8 +162,6 @@ def startup_app():
 
 
 if __name__ == '__main__':
-    Process(target=register_hotkeys).start()
-
     for app_name in ['tim', 'wechat']:
         Process(target=update_icon, args=(app_name, )).start()
 
