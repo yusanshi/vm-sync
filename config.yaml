@@ -9,7 +9,7 @@ windows:
 
 startup-app:
   - 'wechat'
-  # - 'tim'
+  - 'tim'
 
 # capture hotkey in windows, and run command in linux
 # key codes from https://learn.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes

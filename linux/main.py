@@ -170,6 +170,7 @@ if __name__ == '__main__':
                 startup_app,
                 'Run start-up apps?',
                 8000,
+                True,
             )).start()
 
     # wait for network available
