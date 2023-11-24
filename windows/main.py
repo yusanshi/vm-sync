@@ -6,6 +6,7 @@ from pathlib import Path
 from time import sleep
 from typing import Literal
 
+import io
 import cv2
 import mss
 import numpy as np
@@ -19,6 +20,7 @@ import yaml
 from fastapi import FastAPI
 from hotkey import add_hotkey
 from UltraDict import UltraDict
+from starlette.responses import StreamingResponse
 
 TRAY_WIDTH = 800
 TRAY_HEIGHT = 80
@@ -27,14 +29,15 @@ NUM_IMAGES_DETECTING_FLASHING = 5
 THRESHOLD = 0.98
 
 template = {
-    key: cv2.imread(
+    key:
+    cv2.imread(
         str(
             Path(__file__).parent.parent / 'image' / 'template' /
             f'{key}.png'))
     for key in ['tim-new-message', 'tim-no-message', 'wechat-no-message']
 }
 
-logging.basicConfig(level=logging.INFO, format="[%(asctime)s] %(message)s")
+logging.basicConfig(level=logging.DEBUG, format="[%(asctime)s] %(message)s")
 
 app = FastAPI()
 
@@ -44,6 +47,22 @@ db = UltraDict(name='vm-sync')
 @app.get("/")
 def hello():
     return 'Hello from Windows'
+
+
+def take_screenshot():
+    with mss.mss() as sct:
+        screen = sct.monitors[0]
+        assert screen['width'] > TRAY_WIDTH
+        assert screen['height'] > TRAY_HEIGHT
+        area = {
+            'left': screen['width'] - TRAY_WIDTH,
+            'top': screen['height'] - TRAY_HEIGHT,
+            'width': TRAY_WIDTH,
+            'height': TRAY_HEIGHT,
+        }
+        sct_img = sct.grab(area)
+    image = np.asarray(sct_img)[:, :, :3]
+    return image, screen
 
 
 def locate_template(image, template):
@@ -62,21 +81,9 @@ def update_status():
     db[('coordinates', 'tim')] = None
     db[('coordinates', 'wechat')] = None
 
-    images = []
     wechat_locating_results = []
     while True:
-        with mss.mss() as sct:
-            screen = sct.monitors[0]
-            assert screen['width'] > TRAY_WIDTH
-            assert screen['height'] > TRAY_HEIGHT
-            area = {
-                'left': screen['width'] - TRAY_WIDTH,
-                'top': screen['height'] - TRAY_HEIGHT,
-                'width': TRAY_WIDTH,
-                'height': TRAY_HEIGHT,
-            }
-            sct_img = sct.grab(area)
-        image = np.asarray(sct_img)[:, :, :3]
+        image, screen = take_screenshot()
 
         def offset_cooridate(cooridate):
             return (cooridate[0] + screen['width'] - TRAY_WIDTH,
@@ -106,16 +113,13 @@ def update_status():
         elif not no_message and not new_message:
             db[('status', 'tim')] = 'not_found'
 
-        images.append(image)
         wechat_locating_results.append(
             locate_template(image, template['wechat-no-message']))
         logging.debug(f'WeChat: {wechat_locating_results[-1]}')
-        if len(images) > NUM_IMAGES_DETECTING_FLASHING:
-            images.pop(0)
-            wechat_locating_results.pop(0)
 
         # WeChat
-        if len(wechat_locating_results) >= NUM_IMAGES_DETECTING_FLASHING:
+        if len(wechat_locating_results) > NUM_IMAGES_DETECTING_FLASHING:
+            wechat_locating_results.pop(0)
             wechat_displayed = [
                 x for x in wechat_locating_results if x[0] > THRESHOLD
             ]
@@ -158,6 +162,13 @@ def get_active():
     process = psutil.Process(pid)
     logging.info(f'Current active process: {process}')
     return process.exe()
+
+
+@app.get("/screenshot")
+def get_screenshot():
+    image, _ = take_screenshot()
+    _, png = cv2.imencode(".png", image)
+    return StreamingResponse(io.BytesIO(png.tobytes()), media_type="image/png")
 
 
 @app.post("/open/{app_name}")

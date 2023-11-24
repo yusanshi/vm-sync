@@ -17,7 +17,7 @@ capture-hotkey:
   - hotkey: 'f1'
     keycodes:
       - 0x70
-    command: 'flameshot gui'
+    command: 'env QT_AUTO_SCREEN_SCALE_FACTOR=1 flameshot gui'
   - hotkey: 'ctrl+space'
     keycodes:
       - 0xA2

@@ -20,8 +20,10 @@ My environments:
 Linux:
 ```bash
 sudo apt install python3-tk xdotool
-# https://wxpython.org/pages/downloads/
+pip install "fastapi[all]"
+# wxpython
 pip install -f https://extras.wxpython.org/wxPython4/extras/linux/gtk3/ubuntu-22.04 wxPython
+sudo apt install libsdl2-dev
 ```
 
 Windows:
