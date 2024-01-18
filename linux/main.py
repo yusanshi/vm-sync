@@ -12,7 +12,6 @@ import requests
 import uvicorn
 import yaml
 from fastapi import FastAPI
-from message_box import message_box_action
 from tray_icon import TrayIcon
 
 log_dir = Path(__file__).parent / 'log'
@@ -56,7 +55,8 @@ def get_vm_active():
 
 def update_icon(app_name):
     icons = {
-        k: str(
+        k:
+        str(
             Path(__file__).parent.parent / 'image' / 'icon' /
             f'{app_name}-{k}.png')
         for k in ['no-message', 'new-message', 'gray']
@@ -155,23 +155,9 @@ def toggle_app_display(app_name):
     open_app(app_name)
 
 
-def startup_app():
-    logging.info('Open startup apps')
-    for app_name in config['startup-app']:
-        Process(target=open_app, args=(app_name, )).start()
-
-
 if __name__ == '__main__':
     for app_name in ['tim', 'wechat']:
         Process(target=update_icon, args=(app_name, )).start()
-
-    Process(target=message_box_action,
-            args=(
-                startup_app,
-                'Run start-up apps?',
-                8000,
-                False,
-            )).start()
 
     # wait for network available
     while True:

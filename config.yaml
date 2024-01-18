@@ -7,10 +7,6 @@ windows:
   host: '192.168.56.101'
   port: 8000
 
-startup-app:
-  - 'wechat'
-  - 'tim'
-
 # capture hotkey in windows, and run command in linux
 # key codes from https://learn.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes
 capture-hotkey:
