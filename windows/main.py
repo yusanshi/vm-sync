@@ -1,5 +1,10 @@
 import logging
 import subprocess
+import ctypes
+# https://github.com/PySimpleGUI/PySimpleGUI/issues/1179
+# the location matters
+ctypes.windll.shcore.SetProcessDpiAwareness(2)
+
 from functools import partial
 from multiprocessing import Process
 from pathlib import Path
