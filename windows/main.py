@@ -57,8 +57,8 @@ def hello():
 def take_screenshot():
     with mss.mss() as sct:
         screen = sct.monitors[0]
-        assert screen['width'] > TRAY_WIDTH
-        assert screen['height'] > TRAY_HEIGHT
+        assert screen['width'] > TRAY_WIDTH, 'Screen size too small'
+        assert screen['height'] > TRAY_HEIGHT, 'Screen size too small'
         area = {
             'left': screen['width'] - TRAY_WIDTH,
             'top': screen['height'] - TRAY_HEIGHT,
@@ -88,7 +88,12 @@ def update_status():
 
     wechat_locating_results = []
     while True:
-        image, screen = take_screenshot()
+        try:
+            image, screen = take_screenshot()
+        except Exception as e:
+            logging.error(f'Error while taking screenshot: {repr(e)}')
+            sleep(INTERVAL)
+            continue
 
         def offset_cooridate(cooridate):
             return (cooridate[0] + screen['width'] - TRAY_WIDTH,
