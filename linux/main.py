@@ -12,7 +12,6 @@ import requests
 import uvicorn
 import yaml
 from fastapi import FastAPI
-from message_box import message_box_action
 from tray_icon import TrayIcon
 
 log_dir = Path(__file__).parent / 'log'
@@ -164,14 +163,6 @@ def startup_app():
 if __name__ == '__main__':
     for app_name in ['tim', 'wechat']:
         Process(target=update_icon, args=(app_name, )).start()
-
-    Process(target=message_box_action,
-            args=(
-                startup_app,
-                'Run start-up apps?',
-                8000,
-                True,
-            )).start()
 
     # wait for network available
     while True:
