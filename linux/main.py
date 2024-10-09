@@ -55,7 +55,8 @@ def get_vm_active():
 
 def update_icon(app_name):
     icons = {
-        k: str(
+        k:
+        str(
             Path(__file__).parent.parent / 'image' / 'icon' /
             f'{app_name}-{k}.png')
         for k in ['no-message', 'new-message', 'gray']
@@ -152,12 +153,6 @@ def toggle_app_display(app_name):
 
     logging.info(f'App {app_name} not in front, open it')
     open_app(app_name)
-
-
-def startup_app():
-    logging.info('Open startup apps')
-    for app_name in config['startup-app']:
-        Process(target=open_app, args=(app_name, )).start()
 
 
 if __name__ == '__main__':

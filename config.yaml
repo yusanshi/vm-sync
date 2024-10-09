@@ -7,17 +7,13 @@ windows:
   host: '192.168.56.101'
   port: 8000
 
-startup-app:
-  - 'wechat'
-  - 'tim'
-
 # capture hotkey in windows, and run command in linux
 # key codes from https://learn.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes
 capture-hotkey:
   - hotkey: 'f1'
     keycodes:
       - 0x70
-    command: 'flameshot gui'
+    command: 'env QT_AUTO_SCREEN_SCALE_FACTOR=1 flameshot gui'
   - hotkey: 'ctrl+space'
     keycodes:
       - 0xA2
